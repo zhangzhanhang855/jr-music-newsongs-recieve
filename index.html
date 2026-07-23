@@ -3,60 +3,90 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>歌曲数据库列表</title>
+  <title>歌曲数据库 - 实时接收列表</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      max-width: 600px;
+      max-width: 650px;
       margin: 50px auto;
       padding: 24px;
-      background-color: #f9f9fb;
-      border: 1px solid #e1e1e8;
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
-    h2 {
-      margin-top: 0;
-      color: #1a1a1a;
+
+    .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 20px;
     }
-    .refresh-btn {
-      padding: 6px 12px;
-      font-size: 0.85rem;
-      background-color: #0070f3;
-      color: #fff;
+
+    h2 {
+      margin: 0;
+      color: #0f172a;
+      font-size: 1.25rem;
+    }
+
+    button {
+      padding: 8px 16px;
+      background-color: #2563eb;
+      color: white;
       border: none;
       border-radius: 6px;
+      font-weight: 500;
       cursor: pointer;
+      transition: background-color 0.2s;
     }
+
+    button:hover {
+      background-color: #1d4ed8;
+    }
+
+    #status {
+      text-align: center;
+      padding: 20px;
+      color: #64748b;
+      font-size: 0.95rem;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 16px;
-      background-color: #fff;
+      background-color: white;
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
+
     th, td {
       padding: 12px 16px;
       text-align: left;
-      border-bottom: 1px solid #edf2f7;
+      border-bottom: 1px solid #f1f5f9;
     }
-    th { background-color: #f7fafc; color: #4a5568; font-weight: 600; }
-    #status { text-align: center; color: #666; margin-top: 20px; }
+
+    th {
+      background-color: #f1f5f9;
+      color: #475569;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    tr:hover {
+      background-color: #f8fafc;
+    }
   </style>
 </head>
 <body>
 
-  <h2>
-    已保存的歌曲列表
-    <button class="refresh-btn" onclick="fetchSongs()">刷新列表</button>
-  </h2>
+  <div class="header">
+    <h2>MongoDB 数据库歌曲列表</h2>
+    <button onclick="fetchSongs()">刷新数据</button>
+  </div>
 
-  <div id="status">正在加载...</div>
+  <div id="status">正在连接 Render 后端...</div>
 
   <table id="songTable" style="display: none;">
     <thead>
@@ -69,8 +99,8 @@
   </table>
 
   <script>
-    // 指向你部署的后端服务地址
-    const API_BASE_URL = 'http://localhost:3000/api/songs';
+    // ⚠️ 替换为你部署在 Render 上的真实 Backend URL
+    const RENDER_BACKEND_URL = 'https://your-app-name.onrender.com/api/songs';
 
     document.addEventListener('DOMContentLoaded', fetchSongs);
 
@@ -80,17 +110,22 @@
       const tbody = document.getElementById('songTableBody');
 
       statusDiv.style.display = 'block';
-      statusDiv.textContent = '正在获取歌曲列表...';
+      // Render 免费版休眠唤醒提示
+      statusDiv.textContent = '正在从 Render 获取数据（若服务器休眠，首次加载可能需要 30 秒左右）...';
       table.style.display = 'none';
 
       try {
-        const response = await fetch(API_BASE_URL);
-        const songs = await response.json();
+        const response = await fetch(RENDER_BACKEND_URL);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP 错误: ${response.status}`);
+        }
 
+        const songs = await response.json();
         tbody.innerHTML = '';
 
         if (songs.length === 0) {
-          statusDiv.textContent = '暂无数据';
+          statusDiv.textContent = '数据库中暂无记录。';
           return;
         }
 
@@ -108,12 +143,12 @@
 
       } catch (error) {
         console.error('Fetch error:', error);
-        statusDiv.textContent = '获取失败，请确认后端 API 是否正常运行。';
+        statusDiv.textContent = '获取失败，请检查 Render 后端服务链接或 CORS 配置。';
         statusDiv.style.color = '#ef4444';
       }
     }
 
-    // 防 XSS 转义函数
+    // 转义防 HTML 注入
     function escapeHtml(text) {
       return (text || '')
         .replace(/&/g, "&amp;")
